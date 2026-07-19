@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Matches - LiveKick</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta http-equiv="refresh" content="30">
+</head>
+<body>
+    <div class="container">
+        <div class="back-nav">
+            <a href="{{ url_for('index') }}" class="back-btn">← Back to Leagues</a>
+        </div>
+
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1>🔴 Live Matches</h1>
+                    <p class="date">{{ count }} matches currently live</p>
+                </div>
+                <a href="{{ url_for('live_matches') }}" class="btn btn-refresh">⟳ Refresh</a>
+            </div>
+        </header>
+
+        {% if live_matches %}
+        <div class="matches-list">
+            {% for match in live_matches %}
+            <div class="match-card live-card">
+                <div class="match-content">
+                    <div class="match-header">
+                        <span class="competition-tag">{{ match.competition_name }}</span>
+                        <span class="badge badge-live">🔴 LIVE</span>
+                    </div>
+                    
+                    <div class="match-teams">
+                        <div class="team">
+                            {% if match.home_crest %}
+                            <img src="{{ match.home_crest }}" alt="{{ match.home_team }}" class="team-crest">
+                            {% endif %}
+                            <span class="team-name">{{ match.home_team }}</span>
+                        </div>
+                        <span class="score-large">{{ match.home_score }} - {{ match.away_score }}</span>
+                        <div class="team">
+                            <span class="team-name">{{ match.away_team }}</span>
+                            {% if match.away_crest %}
+                            <img src="{{ match.away_crest }}" alt="{{ match.away_team }}" class="team-crest">
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="match-footer">
+                        {% if match.minute %}
+                        <span class="minute-large">{{ match.minute }}'</span>
+                        {% endif %}
+                        
+                        {% if match.streams and match.streams|length > 0 %}
+                        <a href="{{ url_for('stream_player', match_id=match.match_id) }}" class="btn btn-watch">
+                            ▶ Watch Live
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-matches">
+            <div class="no-matches-icon">⚽</div>
+            <p>No live matches at the moment</p>
+            <p class="no-matches-date">Check back later for live action</p>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
