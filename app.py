@@ -21,11 +21,11 @@ app.secret_key = os.getenv('SECRET_KEY', os.urandom(24).hex())
 
 # Configuration
 BACKEND_URL = os.getenv('BACKEND_URL', 'https://colddfootball.neckhards.org')
-PORT = int(os.getenv('PORT', 5000))
+PORT = int(os.getenv('PORT', 5000))  # Render uses PORT env var
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
-CACHE_DURATION = int(os.getenv('CACHE_DURATION', 30))  # seconds
+CACHE_DURATION = int(os.getenv('CACHE_DURATION', 30))
 
-# Configure requests session with retry logic
+# Configure requests session with retry logic and proper headers
 def get_session():
     session = requests.Session()
     retry_strategy = Retry(
@@ -36,7 +36,13 @@ def get_session():
     adapter = HTTPAdapter(max_retries=retry_strategy, pool_connections=10, pool_maxsize=20)
     session.mount('http://', adapter)
     session.mount('https://', adapter)
-    session.timeout = 30
+    # Add headers to avoid 403
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+    })
     return session
 
 session = get_session()
@@ -111,7 +117,7 @@ def index():
     cache_key = "competitions_list"
     
     # Try cache first
-    competitions = get_cached(cache_key)
+    competitions = get_cached(cache_key, cache_duration=300)  # 5 minutes
     
     if competitions is None:
         # Fetch from backend
@@ -275,7 +281,8 @@ def health():
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
         'backend': BACKEND_URL,
-        'cache_size': len(cache)
+        'cache_size': len(cache),
+        'port': PORT
     })
 
 @app.route('/api/competitions')
@@ -327,11 +334,7 @@ def internal_error(error):
     return render_template('500.html'), 500
 
 if __name__ == '__main__':
-    # Run with gunicorn in production, fallback to Flask dev server
-    if os.getenv('RENDER', 'false').lower() == 'true':
-        # Running on Render - use gunicorn
-        logger.info("Running on Render with gunicorn")
-    else:
-        # Local development
-        logger.info(f"Starting development server on port {PORT}")
-        app.run(host='0.0.0.0', port=PORT, debug=DEBUG)
+    # Run on the port Render provides
+    port = int(os.getenv('PORT', 5000))
+    logger.info(f"Starting server on port {port}")
+    app.run(host='0.0.0.0', port=port, debug=DEBUG)
